@@ -1,0 +1,72 @@
+;==================================================================
+; ハートビート 送受信 追加ラング（コピペ用ニモニック）
+;   送信: PLC->ACS  {"Device_Plc":{"Status":{"McnStatus":1}}}  1分周期  publish -> test/plcrcv/1
+;   受信: ACS->PLC  Device_Acs を判定し死活監視（無受信でアラーム）  subscribe <- test/plcsnd/1
+; 使用デバイス（空き確認済み。デバイスコメント master で最終確認のこと）
+;   MR2412=HB送信保留 / MR2413=HB受信検出 / MR2414=死活監視アラーム
+;   T40=送信周期タイマ / T41=受信タイムアウトタイマ
+;   DM990=送信周期(0.1s,既定600=60s) / DM991=受信タイムアウト(0.1s,既定1800=180s)
+;   EM19100=受信先頭キー切出しバッファ
+;==================================================================
+
+
+;=== 【ブロックA：送信】 Main.mnm の「OUT MR009（コネクション確立）」の直後に貼り付け =========
+RUNG_COMMENT
+;--- HB設定値の既定投入（0のときのみ。monitorでDM990/DM991を変更すれば周期変更可） ---
+LD=  #0 DM990            ; HB送信周期(0.1s)
+MOV  #600 DM990          ; 既定 60.0秒
+LD=  #0 DM991            ; HB受信ﾀｲﾑｱｳﾄ(0.1s)
+MOV  #1800 DM991         ; 既定 180.0秒
+RUNG_COMMENT
+;--- 60秒 自己リセットタイマ（1分パルス生成） ---
+LDB  T40                 ; T40 b接点（自己リセット）
+TMR  T40 DM990           ; HB送信周期（DM990で可変）
+RUNG_COMMENT
+;--- 1分ごとに送信保留をSET ---
+LDP  T40                 ; 周期到達の立上り
+SET  MR2412              ; HB送信保留
+RUNG_COMMENT
+;--- 接続中かつ送信バスが空いたら投入（EM2000へ入れるとMQTTSC_MAINが自動publish） ---
+LD   MR2412              ; HB送信保留
+AND  MR009               ; コネクション1 確立完了(Connect)
+AND= #0 EM2000           ; 送信データ が空（既存送信と非衝突）
+FUN StringMove '{"Device_Plc":{"Status":{"McnStatus":1}}}' EM2000
+RES  MR2412              ; HB送信保留
+;=== 【ブロックA】ここまで ==========================================================
+
+
+;=== 【ブロックB：受信・死活監視】 Main2.mnm の「OUT ...i_bEN」ラングの直前に貼り付け ========
+RUNG_COMMENT
+;--- 受信電文の先頭を切出して Device_Acs（ハートビート）か判定 ---
+LDP  gMQTT_astRead_M_Done                         ; 受信完了の立上り
+FMOV #0 EM19100 #10                               ; 判定バッファをクリア（null終端保証）
+FUN ByteBlockMove EM18000 +0 EM19100 +0 FALSE +12 ; 先頭12文字を切出し
+RUNG_COMMENT
+;--- ハートビート判定（※コンパクトJSON前提。実電文を1通見て先頭が {"Device_Acs か確認） ---
+LDP  gMQTT_astRead_M_Done
+FUNAND StringCmp EM19100 '{"Device_Acs'           ; 先頭が一致ならハートビート
+OUT  MR2413                                        ; HB受信検出（1スキャン）
+RUNG_COMMENT
+;--- 死活監視：ハートビート受信でタイマをリセット、無受信で異常 ---
+LDB  MR2413              ; HB受信でリセット（受信ない間だけ計時）
+TMR  T41 DM991           ; 受信タイムアウト（DM991で可変）
+LD   T41                 ; タイムアウト成立
+OUT  MR2414              ; 死活監視アラーム（通信異常）
+;=== 【ブロックB】ここまで ==========================================================
+
+
+;=== 【編集C：Work_Request解析FBのゲート】 Main2.mnm の i_bEN 起動ラングを1行追記 ==========
+; 対象ラング（既存）:
+;     ... ANB M_StrProcessing_JSONDeserialize_F_00A1.o_bErr
+;         ANL
+;         OUT M_StrProcessing_JSONDeserialize_F_00A1.i_bEN
+; ↓ 「ANB ...o_bErr」の次の行に下記1行を挿入（ハートビートを作業指示として解析させない）:
+;
+;     ANB MR2413              ; ハートビートは解析しない
+;
+; 挿入後:
+;     ... ANB M_StrProcessing_JSONDeserialize_F_00A1.o_bErr
+;         ANB MR2413              ; ハートビートは解析しない
+;         ANL
+;         OUT M_StrProcessing_JSONDeserialize_F_00A1.i_bEN
+;=== 【編集C】ここまで ==============================================================
