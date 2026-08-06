@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Main 修正回路図：サーバ作業番号 保持化（完了電文の作業No.=0 事故の修正）</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --fg:#1a1a18; --muted:#6b6b66; --wire:#3a3a36; --ink:#1a1a18;
+    --boxbg:#fff; --add:#0a7c3f; --addbg:#e8f5ee; --addline:#0a7c3f;
+    --del:#b91c1c; --delbg:#fdecec; --delline:#b91c1c;
+    --panel:#fff; --border:#dcdcd6; --warn:#b45309; --warnbg:#fef6e7;
+    --okbg:#eef7f1;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#17171a; --fg:#e8e8e4; --muted:#9a9a94; --wire:#c8c8c2; --ink:#e8e8e4;
+      --boxbg:#212125; --add:#4ade80; --addbg:#14311f; --addline:#4ade80;
+      --del:#f87171; --delbg:#331414; --delline:#f87171;
+      --panel:#1e1e22; --border:#34343a; --warn:#fbbf24; --warnbg:#302408;
+      --okbg:#132a1c;
+    }
+  }
+  :root[data-theme="dark"]{
+      --bg:#17171a; --fg:#e8e8e4; --muted:#9a9a94; --wire:#c8c8c2; --ink:#e8e8e4;
+      --boxbg:#212125; --add:#4ade80; --addbg:#14311f; --addline:#4ade80;
+      --del:#f87171; --delbg:#331414; --delline:#f87171;
+      --panel:#1e1e22; --border:#34343a; --warn:#fbbf24; --warnbg:#302408;
+      --okbg:#132a1c;
+  }
+  :root[data-theme="light"]{
+      --bg:#fbfbfa; --fg:#1a1a18; --muted:#6b6b66; --wire:#3a3a36; --ink:#1a1a18;
+      --boxbg:#fff; --add:#0a7c3f; --addbg:#e8f5ee; --addline:#0a7c3f;
+      --del:#b91c1c; --delbg:#fdecec; --delline:#b91c1c;
+      --panel:#fff; --border:#dcdcd6; --warn:#b45309; --warnbg:#fef6e7;
+      --okbg:#eef7f1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    line-height:1.7;padding:32px 20px 80px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:18px;margin:44px 0 4px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+  h3{font-size:14px;margin:24px 0 8px;color:var(--muted);font-weight:600}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
+  p{margin:8px 0}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em;
+    background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+  .callout{border:1px solid var(--border);background:var(--panel);border-radius:8px;
+    padding:14px 18px;margin:16px 0;font-size:14px}
+  .callout.warn{border-color:var(--warn);background:var(--warnbg)}
+  .callout.add{border-color:var(--addline);background:var(--addbg)}
+  .callout.ok{border-color:var(--addline);background:var(--okbg)}
+  .pos{font-size:13px;color:var(--muted);margin:12px 0 6px;
+    border-left:3px solid var(--border);padding-left:10px}
+  .ladder{border:1px solid var(--border);border-radius:8px;background:var(--panel);
+    padding:14px 8px 18px 0;margin:10px 0 6px;overflow-x:auto}
+  .rung{display:flex;align-items:stretch;min-width:min-content}
+  .rung + .rung{margin-top:2px;border-top:1px dashed var(--border);padding-top:6px}
+  .rung.ctx{opacity:.42}
+  .rail{flex:0 0 22px;position:relative}
+  .rail::before{content:"";position:absolute;right:0;top:30px;bottom:15px;width:2.5px;background:var(--wire)}
+  .num{flex:0 0 120px;text-align:right;padding-right:10px;font-size:11px;color:var(--muted);
+    font-family:ui-monospace,monospace;padding-top:16px}
+  .newrung .num{color:var(--add);font-weight:700}
+  .delrung .num{color:var(--del);font-weight:700}
+  .line{display:flex;align-items:flex-end;flex:1;min-width:0}
+  .el{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+  .lbl{font-size:11px;height:15px;line-height:15px;white-space:nowrap;color:var(--muted);
+    font-family:ui-monospace,monospace}
+  .sym{height:30px;display:flex;align-items:center;justify-content:center;position:relative}
+  .wire{flex:0 0 14px}
+  .wire.grow{flex:1 1 auto;min-width:14px}
+  .wire .sym{width:100%}
+  .wire .sym::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;
+    background:var(--wire);transform:translateY(-50%)}
+  .contact .sym{width:34px}
+  .contact .sym::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;
+    background:var(--wire);transform:translateY(-50%)}
+  .contact .sym i{position:absolute;width:20px;height:24px;
+    border-left:2.5px solid var(--ink);border-right:2.5px solid var(--ink)}
+  .box .bx{border:2.5px solid var(--ink);background:var(--boxbg);border-radius:4px;
+    padding:4px 10px;font-size:12px;font-family:ui-monospace,monospace;white-space:nowrap}
+  .add .lbl{color:var(--add);font-weight:700}
+  .add .sym i{border-color:var(--addline)}
+  .add .bx{border-color:var(--addline);background:var(--addbg);color:var(--add)}
+  .del .lbl{color:var(--del);font-weight:700;text-decoration:line-through}
+  .del .sym i{border-color:var(--delline)}
+  .del .bx{border-color:var(--delline);background:var(--delbg);color:var(--del);text-decoration:line-through}
+  .chg .lbl{color:var(--warn);font-weight:700}
+  .chg .bx{border-color:var(--warn);background:var(--warnbg);color:var(--warn)}
+  .par{display:flex;flex-direction:column;position:relative;flex:0 0 auto}
+  .par::before,.par::after{content:"";position:absolute;top:30px;bottom:15px;width:2.5px;background:var(--wire)}
+  .par::before{left:0}.par::after{right:0}
+  .par.add::before,.par.add::after{background:var(--addline)}
+  .branch{display:flex;align-items:flex-end}
+  .branch + .branch{margin-top:8px}
+  .branch.del{opacity:.75}
+  .brmark{flex:0 0 44px;font-size:10px;font-family:ui-monospace,monospace;color:var(--muted);
+    text-align:right;padding-right:6px;align-self:center;font-weight:700}
+  .brmark.chg{color:var(--warn)}
+  .brmark.del{color:var(--del);text-decoration:line-through}
+  .brmark.keep{color:var(--muted)}
+  .legend{display:flex;flex-wrap:wrap;gap:20px;font-size:12px;color:var(--muted);
+    border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin:16px 0}
+  .legend .line{display:flex;align-items:flex-end;flex:0 0 auto}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin:12px 0}
+  th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);font-weight:600}
+  tr.hl td{background:var(--addbg)}
+  tr.hlwarn td{background:var(--warnbg)}
+  .tag{display:inline-block;background:var(--addbg);color:var(--add);border:1px solid var(--addline);
+    border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;margin-right:6px}
+  .tag.del{background:var(--delbg);color:var(--del);border-color:var(--delline)}
+  .mn{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.9;
+    background:#1f2933;color:#e8eef2;padding:14px 18px;border-radius:8px;margin:10px 0;overflow-x:auto;white-space:pre}
+  .mn .c{color:#7fd1a8}
+  .mn .del{color:#ff9b9b;text-decoration:line-through;opacity:.85}
+  .mn .chg{color:#ffd479;font-weight:700}
+  .mn .keep{color:#e8eef2}
+  ol,ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  .col2{display:flex;gap:16px;flex-wrap:wrap}
+  .col2>div{flex:1 1 460px;min-width:0}
+  .stackinfo{font-size:12px;color:var(--muted);margin:4px 0 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Main 修正回路図：サーバ作業番号 保持化 <span class="tag del">不具合修正</span></h1>
+<p class="sub">サーバの動作完了電文で作業No.が「0」になる不具合を修正する。原因は
+<b>完了電文の送信直後に保持していた作業番号をクリアしていたこと</b>（<code>FMOV #0 DM25120 #2</code> /
+<code>FMOV #0 DM25125 #2</code>）。<span style="color:var(--del);font-weight:700">赤＝削除</span>、
+<span style="color:var(--warn);font-weight:700">黄＝命令変更（MRD→MPP）</span>。
+対象: <code>Main</code>（サーバ動作完了送信ループ／<code>FOR #2</code> の中）</p>
+
+<!-- ============ ① 不具合の原因 ============ -->
+<h2>① 不具合の原因</h2>
+<div class="callout warn">
+<b>症状：</b> サーバの動作完了電文で、作業No.が <code>0</code> になることがある。<br>
+<b>原因：</b> 荷取と荷置をまとめた1件の作業指示では、三菱側から<b>完了が2回</b>上がる（号機ごとの読込フラグイベント単位）。
+ところが完了電文を送信した直後に <code>FMOV #0 DM25120 #2</code>（4102側）／<code>FMOV #0 DM25125 #2</code>（4101側）で
+保持していた作業番号を<b>その場でクリア</b>していたため、<b>1回目の送信でクリアされてしまい、2回目の完了電文では作業No.=0</b> になっていた。
+</div>
+<div class="callout add">
+<b>修正方針（確定）：</b> 送信後のクリアをやめ、<b>次の作業指示（<code>Work_Request</code>）を受信するまで保持する</b>。
+次の <code>Work_Request</code> 受信時に <code>Main2</code> が <code>DM25120/DM25121</code>（4102）・<code>DM25125/DM25126</code>（4101）を
+上書きするので、明示的なクリアは不要。<br>
+ユーザー確認済み：「作業指示を受けていないのにサーバの動作完了が上がることはない（必ず指示に対応）」→
+古い番号を誤って返す事故は起きない。
+</div>
+
+<!-- ============ ② 分岐構造の組み替えが必要な理由 ============ -->
+<h2>② なぜ単純削除ではなく分岐の組み替えが必要か</h2>
+<p class="pos">
+<code>FMOV #0 DM25120 #2</code> は独立した1行ではなく、<b>MPS/MPP分岐の最終出力</b>になっていた。
+分岐の途中の1本を削除する場合は問題ないが、<b>最終分岐（MPPで始まる枝）を削除する</b>には、
+<b>1つ手前の分岐（MRDで始まっていた枝）をMPPに変更して「新しい最終分岐」に昇格させる</b>必要がある。
+そうしないとMPS/MPPの段数（スタック深さ）が崩れ、KV-STUDIOがニモニックを読めなくなる。
+</p>
+<div class="stackinfo">
+変更前後とも、この内側分岐は <b>MPS 1回・MPP 1回で対応が取れている</b>（段数は変わらない）。
+変わるのは中間分岐の個数（<b>MRD 2回 → 1回</b>）と、最終分岐の中身（旧: 3本目=MRD開始・4本目=MPP開始の<code>FMOV</code> → 新: 3本目がMPP開始の最終分岐になり、4本目は消滅）。
+</div>
+
+<h3>4102側（<code>DM25120</code>／<code>DM25121</code>）：変更前</h3>
+<div class="ladder">
+  <div class="rung ctx">
+    <div class="num">外側（既存）</div><div class="rail"></div>
+    <div class="line">
+      <span class="el box"><span class="lbl">処理中号機=4102</span><span class="sym"><span class="bx">AND= #16642 DM1115:Z2</span></span></span>
+      <span class="el wire"><span class="lbl">この中の内側分岐↓</span><span class="sym"></span></span>
+    </div>
+  </div>
+  <div class="rung">
+    <div class="num">内側分岐（MPS）</div><div class="rail"></div>
+    <div class="line">
+      <span class="par">
+        <span class="branch">
+          <span class="brmark keep">(MPS)</span>
+          <span class="el box"><span class="lbl">作業No.上位→UINT</span><span class="sym"><span class="bx">FUNAND BCD_TO_UINT DM212 DM25120</span></span></span>
+          <span class="el box"><span class="lbl">上位4桁を文字列化</span><span class="sym"><span class="bx">FUN NumToDecString DM21004:Z7 DM212 ??? ???</span></span></span>
+        </span>
+        <span class="branch">
+          <span class="brmark keep">MRD</span>
+          <span class="el box"><span class="lbl">作業No.下位→UINT</span><span class="sym"><span class="bx">FUNAND BCD_TO_UINT DM214 DM25121</span></span></span>
+          <span class="el box"><span class="lbl">下位4桁を文字列化</span><span class="sym"><span class="bx">FUN NumToDecString DM21006:Z7 DM214 ??? ???</span></span></span>
+        </span>
+        <span class="branch">
+          <span class="brmark keep">MRD</span>
+          <span class="el box"><span class="lbl">作業No.≠0 のとき</span><span class="sym"><span class="bx">AND= DM212 #0</span></span></span>
+          <span class="el box"><span class="lbl">上位+下位を結合</span><span class="sym"><span class="bx">FUN StringMove DM21006:Z7 DM21004:Z7</span></span></span>
+        </span>
+        <span class="branch del">
+          <span class="brmark del">MPP</span>
+          <span class="el box del"><span class="lbl">送信直後クリア（原因）</span><span class="sym"><span class="bx">FMOV #0 DM25120 #2</span></span></span>
+        </span>
+      </span>
+      <span class="el wire grow"><span class="lbl">この後 MRD で外側へ戻る</span><span class="sym"></span></span>
+    </div>
+  </div>
+</div>
+<p class="sub">4本目の枝（<span style="color:var(--del);font-weight:700;text-decoration:line-through">MPP開始の <code>FMOV #0 DM25120 #2</code></span>）が、
+2回目の完了電文で作業No.=0になる原因。この枝がMPS/MPP分岐の<b>最終出力</b>になっている。</p>
+
+<h3>4102側：変更後</h3>
+<div class="ladder">
+  <div class="rung ctx">
+    <div class="num">外側（既存）</div><div class="rail"></div>
+    <div class="line">
+      <span class="el box"><span class="lbl">処理中号機=4102</span><span class="sym"><span class="bx">AND= #16642 DM1115:Z2</span></span></span>
+      <span class="el wire"><span class="lbl">この中の内側分岐↓</span><span class="sym"></span></span>
+    </div>
+  </div>
+  <div class="rung newrung">
+    <div class="num">★ 内側分岐（MPS）</div><div class="rail"></div>
+    <div class="line">
+      <span class="par">
+        <span class="branch">
+          <span class="brmark keep">(MPS)</span>
+          <span class="el box"><span class="lbl">作業No.上位→UINT</span><span class="sym"><span class="bx">FUNAND BCD_TO_UINT DM212 DM25120</span></span></span>
+          <span class="el box"><span class="lbl">上位4桁を文字列化</span><span class="sym"><span class="bx">FUN NumToDecString DM21004:Z7 DM212 ??? ???</span></span></span>
+        </span>
+        <span class="branch">
+          <span class="brmark keep">MRD</span>
+          <span class="el box"><span class="lbl">作業No.下位→UINT</span><span class="sym"><span class="bx">FUNAND BCD_TO_UINT DM214 DM25121</span></span></span>
+          <span class="el box"><span class="lbl">下位4桁を文字列化</span><span class="sym"><span class="bx">FUN NumToDecString DM21006:Z7 DM214 ??? ???</span></span></span>
+        </span>
+        <span class="branch">
+          <span class="brmark chg">MPP★</span>
+          <span class="el box chg"><span class="lbl">作業No.≠0 のとき（最終分岐に昇格）</span><span class="sym"><span class="bx">AND= DM212 #0</span></span></span>
+          <span class="el box chg"><span class="lbl">上位+下位を結合（保持したまま）</span><span class="sym"><span class="bx">FUN StringMove DM21006:Z7 DM21004:Z7</span></span></span>
+        </span>
+      </span>
+      <span class="el wire grow"><span class="lbl">この後 MRD で外側へ戻る</span><span class="sym"></span></span>
+    </div>
+  </div>
+</div>
+<p class="sub">3本目の枝の開始命令を <b>MRD → MPP</b> に変更して最終分岐に昇格させ、
+旧3本目の開始だった位置は消滅、旧4本目（<code>MPP</code>＋<code>FMOV</code>）を丸ごと削除。
+これで<b>クリアされず、作業No.が保持</b>される。4101側（<code>DM25125</code>／<code>DM25126</code>）も同形で修正する。</p>
+
+<!-- ============ ③ ニモニック diff ============ -->
+<h2>③ ニモニック差分（Main／サーバ動作完了ループ <code>FOR #2</code> の中）</h2>
+<p class="pos">出典：変更前 <code>fx_Main.txt</code>（1541〜1572行付近）／変更後 <code>wn_Main.txt</code>（1541〜1570行付近）。
+<span style="color:#ff9b9b;text-decoration:line-through">取り消し線＝削除</span>、
+<span style="color:#ffd479;font-weight:700">黄＝命令変更（MRD→MPP）</span>。削除6行・追加2行（実質：MRD→MPPを2箇所、MPP+FMOVを2組削除）。</p>
+
+<div class="mn"><span class="keep">FUN StringMove 'SV' DM21000:Z7              </span><span class="c">; 機種名</span>
+<span class="keep">FUN BCD_TO_UINT DM21002:Z7 DM1115:Z2         </span><span class="c">; デバイスID  ｻｰﾊﾞｰｽﾃｰﾀｽ1</span>
+<span class="keep">FUN StringMove '0' DM21004:Z7                </span><span class="c">; 作業No.</span>
+<span class="keep">MPS</span>
+<span class="keep">AND= #16642 DM1115:Z2                        </span><span class="c">; ｻｰﾊﾞｰｽﾃｰﾀｽ1（4102）</span>
+<span class="keep">MPS</span>
+<span class="keep">FUNAND BCD_TO_UINT DM212 DM25120             </span><span class="c">; 作業No.</span>
+<span class="keep">FUN NumToDecString DM21004:Z7 DM212 ??? ???  </span><span class="c">; 作業No.  作業No.</span>
+<span class="keep">MRD</span>
+<span class="keep">FUNAND BCD_TO_UINT DM214 DM25121             </span><span class="c">; 作業NO.</span>
+<span class="keep">FUN NumToDecString DM21006:Z7 DM214 ??? ???  </span><span class="c">; 作業NO.</span>
+<span class="del">MRD</span><span class="chg">                                      ← MPP に変更</span>
+<span class="keep">AND= DM212 #0                                </span><span class="c">; 作業No.</span>
+<span class="keep">FUN StringMove DM21006:Z7 DM21004:Z7         </span><span class="c">; 作業No.</span>
+<span class="del">MPP                                           ← 削除</span>
+<span class="del">FMOV #0 DM25120 #2                            ← 削除（不具合の原因）</span>
+<span class="keep">MRD</span>
+<span class="keep">AND= #16641 DM1115:Z2                        </span><span class="c">; ｻｰﾊﾞｰｽﾃｰﾀｽ1（4101）</span>
+<span class="keep">MPS</span>
+<span class="keep">FUNAND BCD_TO_UINT DM212 DM25125             </span><span class="c">; 作業No.</span>
+<span class="keep">FUN NumToDecString DM21004:Z7 DM212 ??? ???  </span><span class="c">; 作業No.  作業No.</span>
+<span class="keep">MRD</span>
+<span class="keep">FUNAND BCD_TO_UINT DM214 DM25126             </span><span class="c">; 作業NO.</span>
+<span class="keep">FUN NumToDecString DM21006:Z7 DM214 ??? ???  </span><span class="c">; 作業NO.</span>
+<span class="del">MRD</span><span class="chg">                                      ← MPP に変更</span>
+<span class="keep">AND= DM212 #0                                </span><span class="c">; 作業No.</span>
+<span class="keep">FUN StringMove DM21006:Z7 DM21004:Z7         </span><span class="c">; 作業No.</span>
+<span class="del">MPP                                           ← 削除</span>
+<span class="del">FMOV #0 DM25125 #2                            ← 削除（不具合の原因）</span>
+<span class="keep">MRD</span>
+<span class="keep">LDB MR30615                                  </span><span class="c">; 分離/作業指示bit:1</span></div>
+
+<div class="callout">
+<b>4101側（<code>DM25125</code>／<code>DM25126</code>）も4102側とまったく同形</b>で修正する：
+2組目の内側分岐の <b>3本目 <code>MRD</code> → <code>MPP</code></b>、旧 <code>MPP</code> と
+<code>FMOV #0 DM25125 #2</code> を削除する。
+</div>
+
+<!-- ============ ④ 使用デバイス ============ -->
+<h2>④ 使用デバイス</h2>
+<table>
+  <tr><th>デバイス</th><th>役割</th></tr>
+  <tr class="hl"><td><code>DM25120</code> / <code>DM25121</code></td><td>サーバ<b>4102</b>（出庫）の作業No. BCD 上位／下位。<code>Main2</code> が <code>Work_Request</code> 受信時に書き込み、本ラングは<b>読み出すだけ</b>（今回、送信後のクリアを廃止）</td></tr>
+  <tr class="hl"><td><code>DM25125</code> / <code>DM25126</code></td><td>サーバ<b>4101</b>（入庫）の作業No. BCD 上位／下位。同上</td></tr>
+  <tr><td><code>DM21004</code> / <code>DM21006</code></td><td>送信文字列バッファの作業No.（上位4桁／下位4桁）。完了電文の送信データに注入する一時領域</td></tr>
+  <tr><td><code>DM212</code> / <code>DM214</code></td><td><code>FUNAND BCD_TO_UINT</code> の変換結果を受ける作業用TEMP（上位／下位）。分岐内の一時値</td></tr>
+  <tr><td><code>DM1115:Z2</code></td><td>完了ループ（<code>FOR #2</code>）が処理中の号機のDeviceId（BCD）。<code>#16642</code> = <code>$4102</code>、<code>#16641</code> = <code>$4101</code></td></tr>
+</table>
+<div class="callout">
+<b>保持のライフサイクル：</b> <code>Main2</code> が <code>Work_Request</code> 受信時に <code>DM25120/DM25121</code>・<code>DM25125/DM25126</code> へ書き込み →
+本ラング（完了送信時）はそれを<b>読み出して注入するだけ（消さない）</b> → 次の <code>Work_Request</code> 受信で <code>Main2</code> が上書き、というライフサイクルになる。
+</div>
+
+<!-- ============ ⑤ 反映手順 ============ -->
+<h2>⑤ 反映手順</h2>
+<h3>手作業で直す場合（最も簡単）</h3>
+<div class="callout add">
+KV-STUDIO 上で、<b>Main のサーバ完了ループ</b>（<code>StringMove 'SV' DM21000:Z7</code> がある <code>FOR #2</code> の中）で、
+<code>FMOV #0 DM25120 #2</code> と <code>FMOV #0 DM25125 #2</code> の<b>2つのボックスを削除する</b>だけでよい。
+KV-STUDIO上でボックスを消せば、分岐（MPS/MRD/MPP）は<b>自動的に詰まる</b>ため、MRD→MPPの付け替えを手で意識する必要はない。
+</div>
+<h3>ニモニック取り込みで一括反映する場合</h3>
+<p class="pos"><code>Main</code> は <b>FB入り（<code>FBCSL</code> 4件）</b>のため、ニモニック単体では往復できない。以下の手順を厳守する。</p>
+<ol>
+<li><b>プロジェクトをバックアップ</b>する。</li>
+<li>対象モジュール <code>Main</code> の<b>ニモニックを書き出す</b>。FB入りのため<b>ローカル変数も一緒に書き出す</b>。</li>
+<li>モジュール削除 →本修正版 <code>Main.mnm</code> を取り込む。</li>
+<li><b>ローカル変数を移植</b>する（FBインスタンス設定を含む。これをしないと <code>???</code> 引数が解決されずエラーになる）。</li>
+<li><b>F4（変換）でエラー0件</b>を確認する。</li>
+<li>動作確認後、転送する。</li>
+</ol>
+<div class="callout ok">
+<b>検証済み：</b> 実機エクスポート <code>KV_MQTT_FLG_FIX</code> の <code>Main</code> をベースに生成。<b>削除6行・追加2行</b>
+（実質：<code>MRD→MPP</code> を2箇所、<code>MPP</code>+<code>FMOV</code> を2組削除）。<code>rung_check</code> 合格で
+MPS/MRD/MPPの段数が釣り合い、終端も正常。<code>decode→encode</code> 往復 <b>IDENTICAL</b>。他6モジュールは無変更。
+成果物：<code>/home/ilm/ダウンロード/KV_MQTT_WN/</code>
+</div>
+
+<!-- ============ ⑥ テスト手順 ============ -->
+<h2>⑥ テスト手順</h2>
+<table>
+  <tr><th>#</th><th>操作</th><th>期待結果</th></tr>
+  <tr><td>1</td><td>サーバ4101宛に荷取＋荷置の2Job作業指示を送信（WorkNumber=例 <code>12345678</code>）</td><td><code>DM25125=$1234</code> / <code>DM25126=$5678</code> を確認</td></tr>
+  <tr><td>2</td><td>1件目の完了（荷取）を起こす</td><td>完了電文の作業No.が <code>"12345678"</code></td></tr>
+  <tr class="hl"><td>3</td><td>2件目の完了（荷置）を起こす</td><td><b>作業No.が再び <code>"12345678"</code>（従来は0になっていた）</b></td></tr>
+  <tr><td>4</td><td>2件目完了後の <code>DM25125</code>／<code>DM25126</code> を確認</td><td>クリアされず<b>保持されたまま</b>であること</td></tr>
+  <tr><td>5</td><td>次の作業指示（別のWorkNumber）を送信</td><td><code>DM25125</code>／<code>DM25126</code> が<b>上書き</b>されること</td></tr>
+  <tr><td>6</td><td>サーバ4102側（<code>DM25120</code>／<code>DM25121</code>）も1〜5と同様に確認</td><td>同じ結果になること</td></tr>
+</table>
+
+<div class="legend">
+  <span><b>凡例:</b></span>
+  <span class="line"><span class="el box"><span class="lbl">既存</span><span class="sym"><span class="bx">命令</span></span></span></span>
+  <span style="color:var(--del);font-weight:700;text-decoration:line-through">赤＝削除</span>
+  <span style="color:var(--warn);font-weight:700">黄＝命令変更（MRD→MPP）</span>
+  <span>薄いラング＝前後の既存回路（変更しない）</span>
+</div>
+
+</div>
+</body>
+</html>
