@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>統合版 変更回路図／取り込み手順書（KV_MQTT_ALL）</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --fg:#1a1a18; --muted:#6b6b66; --wire:#3a3a36; --ink:#1a1a18;
+    --boxbg:#fff; --add:#0a7c3f; --addbg:#e8f5ee; --addline:#0a7c3f;
+    --panel:#fff; --border:#dcdcd6; --warn:#b45309; --warnbg:#fef6e7;
+    --okbg:#eef7f1; --del:#b91c1c; --delbg:#fdeceb;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#17171a; --fg:#e8e8e4; --muted:#9a9a94; --wire:#c8c8c2; --ink:#e8e8e4;
+      --boxbg:#212125; --add:#4ade80; --addbg:#14311f; --addline:#4ade80;
+      --panel:#1e1e22; --border:#34343a; --warn:#fbbf24; --warnbg:#302408;
+      --okbg:#132a1c; --del:#f87171; --delbg:#3a1414;
+    }
+  }
+  :root[data-theme="dark"]{
+      --bg:#17171a; --fg:#e8e8e4; --muted:#9a9a94; --wire:#c8c8c2; --ink:#e8e8e4;
+      --boxbg:#212125; --add:#4ade80; --addbg:#14311f; --addline:#4ade80;
+      --panel:#1e1e22; --border:#34343a; --warn:#fbbf24; --warnbg:#302408;
+      --okbg:#132a1c; --del:#f87171; --delbg:#3a1414;
+  }
+  :root[data-theme="light"]{
+    --bg:#fbfbfa; --fg:#1a1a18; --muted:#6b6b66; --wire:#3a3a36; --ink:#1a1a18;
+    --boxbg:#fff; --add:#0a7c3f; --addbg:#e8f5ee; --addline:#0a7c3f;
+    --panel:#fff; --border:#dcdcd6; --warn:#b45309; --warnbg:#fef6e7;
+    --okbg:#eef7f1; --del:#b91c1c; --delbg:#fdeceb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    line-height:1.7;padding:32px 20px 80px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:18px;margin:44px 0 4px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+  h3{font-size:14px;margin:24px 0 8px;color:var(--muted);font-weight:600}
+  h4{font-size:13px;margin:18px 0 6px;font-weight:700}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
+  p{margin:8px 0}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em;
+    background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+  .callout{border:1px solid var(--border);background:var(--panel);border-radius:8px;
+    padding:14px 18px;margin:16px 0;font-size:14px}
+  .callout.warn{border-color:var(--warn);background:var(--warnbg)}
+  .callout.add{border-color:var(--addline);background:var(--addbg)}
+  .callout.ok{border-color:var(--addline);background:var(--okbg)}
+  .pos{font-size:13px;color:var(--muted);margin:12px 0 6px;
+    border-left:3px solid var(--border);padding-left:10px}
+  .ladder{border:1px solid var(--border);border-radius:8px;background:var(--panel);
+    padding:14px 8px 18px 0;margin:10px 0 6px;overflow-x:auto}
+  .rung{display:flex;align-items:stretch;min-width:min-content}
+  .rung + .rung{margin-top:2px;border-top:1px dashed var(--border);padding-top:6px}
+  .rung.ctx{opacity:.42}
+  .rail{flex:0 0 22px;position:relative}
+  .rail::before{content:"";position:absolute;right:0;top:30px;bottom:15px;width:2.5px;background:var(--wire)}
+  .num{flex:0 0 104px;text-align:right;padding-right:10px;font-size:11px;color:var(--muted);
+    font-family:ui-monospace,monospace;padding-top:16px}
+  .newrung .num{color:var(--add);font-weight:700}
+  .line{display:flex;align-items:flex-end;flex:1;min-width:0}
+  .el{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+  .lbl{font-size:11px;height:15px;line-height:15px;white-space:nowrap;color:var(--muted);
+    font-family:ui-monospace,monospace}
+  .sym{height:30px;display:flex;align-items:center;justify-content:center;position:relative}
+  .wire{flex:0 0 14px}
+  .wire.grow{flex:1 1 auto;min-width:14px}
+  .wire .sym{width:100%}
+  .wire .sym::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;
+    background:var(--wire);transform:translateY(-50%)}
+  .contact .sym{width:34px}
+  .contact .sym::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;
+    background:var(--wire);transform:translateY(-50%)}
+  .contact .sym i{position:absolute;width:20px;height:24px;
+    border-left:2.5px solid var(--ink);border-right:2.5px solid var(--ink)}
+  .contact.b .sym i::after{content:"";position:absolute;left:-2px;right:-2px;top:-2px;height:2.5px;
+    background:var(--ink);transform:rotate(24deg);transform-origin:left center}
+  .box .bx{border:2.5px solid var(--ink);background:var(--boxbg);border-radius:4px;
+    padding:4px 10px;font-size:12px;font-family:ui-monospace,monospace;white-space:nowrap}
+  .add .lbl{color:var(--add);font-weight:700}
+  .add .sym i{border-color:var(--addline)}
+  .add.contact.b .sym i::after{background:var(--addline)}
+  .add .bx{border-color:var(--addline);background:var(--addbg);color:var(--add)}
+  .par{display:flex;flex-direction:column;position:relative;flex:0 0 auto}
+  .par::before,.par::after{content:"";position:absolute;top:30px;bottom:15px;width:2.5px;background:var(--wire)}
+  .par::before{left:0}.par::after{right:0}
+  .par.add::before,.par.add::after{background:var(--addline)}
+  .branch{display:flex;align-items:flex-end}
+  .branch + .branch{margin-top:8px}
+  .legend{display:flex;flex-wrap:wrap;gap:20px;font-size:12px;color:var(--muted);
+    border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin:16px 0}
+  .legend .line{display:flex;align-items:flex-end;flex:0 0 auto}
+  .tblwrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin:12px 0}
+  th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);font-weight:600}
+  tr.hl td{background:var(--addbg)}
+  .old{color:var(--del);font-family:ui-monospace,monospace;font-weight:700}
+  .new{color:var(--add);font-family:ui-monospace,monospace;font-weight:700}
+  .tag{display:inline-block;background:var(--addbg);color:var(--add);border:1px solid var(--addline);
+    border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;margin-right:6px}
+  .tag.g{background:var(--panel);color:var(--muted);border-color:var(--border)}
+  .mn{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.9;
+    background:#1f2933;color:#e8eef2;padding:14px 18px;border-radius:8px;margin:10px 0;overflow-x:auto;white-space:pre}
+  .mn .c{color:#7fd1a8}
+  .mn .n{color:#ffd479;font-weight:700}
+  .mn .d{color:#ff9c8a}
+  .forbox{border:2px dashed var(--addline);border-radius:8px;padding:10px 10px 14px;margin:8px 0}
+  .forlbl{font-size:12px;font-weight:700;color:var(--add);font-family:ui-monospace,monospace;margin-bottom:6px}
+  ol,ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  .toc{border:1px solid var(--border);background:var(--panel);border-radius:8px;padding:12px 18px;margin:18px 0;font-size:13px}
+  .toc ol{margin:4px 0}
+  .toc a{color:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>統合版 変更回路図／取り込み手順書 <span class="tag">KV_MQTT_ALL</span></h1>
+<p class="sub">実機エクスポート <b>KV_MQTT_FIX7_FIN2（2026-08-06 08:43）</b> をベースに、その後の依頼<b>3件をすべて反映した統合版</b>。
+<span style="color:var(--add);font-weight:700">緑＝今回の追加／変更後</span>、<span style="color:var(--del);font-weight:700">赤＝変更前の値</span>。</p>
+
+<!-- ============ 位置づけ ============ -->
+<div class="callout add">
+<b>この文書の位置づけ</b>
+<ul style="margin:6px 0">
+<li>成果物は <b><code>/home/ilm/ダウンロード/KV_MQTT_ALL/</code></b>（<b>全7モジュールの完全セット</b>＋スクリプトボックス貼付用テキスト）。</li>
+<li>ベースから変更があるのは <b><code>Main</code> と <code>Main2</code> の2モジュールのみ</b>。
+  他5モジュール（<code>MQTTSC_Copyright</code> / <code>MQTTSC_MAIN_SAMPLE</code> / <code>MQTTSC_MANAGE_SAMPLE</code> /
+  <code>M_StrProcessing_JSONDeserialize_F_00A</code> / <code>M_StrProcessing_JSONSerialize_F_00A</code>）は
+  <b>ベースとバイト単位で完全同一</b>。</li>
+<li>過去に配布した <b>KV_MQTT_FIX8 / FIX9 / FIX10</b> は本統合版の<b>中間段階</b>。
+  <b><code>KV_MQTT_ALL</code> だけ取り込めばよい</b>（FIX10 とは全8ファイルがバイト単位で同一であることを検証済み）。</li>
+</ul>
+</div>
+
+<!-- ============ 変更サマリ ============ -->
+<h2>変更サマリ</h2>
+<div class="tblwrap">
+<table>
+  <tr><th>#</th><th>モジュール</th><th>内容</th><th>規模</th></tr>
+  <tr class="hl"><td><b>1</b></td><td><code>Main</code></td>
+      <td>機器マスタ <b>DeviceId 採番変更</b>（全機器を号機 01 始まりに統一。9x91 は種別も 3 へ）</td>
+      <td><b>180件の値変更</b>（追加/削除ゼロ）</td></tr>
+  <tr class="hl"><td><b>2</b></td><td><code>Main2</code></td>
+      <td><b>シャトル書込フラグON</b> ＋ <b>マルチ化対応フラグ書込</b>（どちらも未実装だった）</td>
+      <td><b>4行追加</b></td></tr>
+  <tr class="hl"><td><b>3</b></td><td><code>Main2</code></td>
+      <td><b>指示受入可OFF中は書込フラグを0に保つ</b>（シャトル・サーバ両方、毎スキャン監視）</td>
+      <td><b>28行追加</b></td></tr>
+</table>
+</div>
+
+<div class="callout ok">
+<b>検証済み事項</b>
+<ul style="margin:6px 0">
+<li><code>Main</code>：<b>180行の値置換のみ</b>。行の追加・削除は<b>ゼロ</b>（1807行 → 1807行）。</li>
+<li><code>Main2</code>：<b>追加32行・削除ゼロ</b>（659行 → 691行）。既存行の書き換えは一切なし。</li>
+<li>両モジュールとも <b>rung_check 合格</b>（MPS/MRD/MPP ブロック分断なし、FOR/NEXT 対応正常、<code>END</code>/<code>ENDH</code> 正常）。</li>
+<li><b>decode → encode 往復 IDENTICAL</b>（エンコード再現性を確認済み）。</li>
+<li><b>独立再構築による相互検証も一致</b>（別経路で作り直した結果とバイト一致）。</li>
+<li>他5モジュールは <b>KV_MQTT_FIX7_FIN2 とバイト単位で同一</b>を <code>cmp</code> で確認済み。</li>
+</ul>
+</div>
+
+<div class="toc">
+<b>目次</b>
+<ol>
+<li><a href="#s1">対象ファイルと変更範囲</a></li>
+<li><a href="#s2">変更1：機器マスタ DeviceId 採番変更（Main）</a></li>
+<li><a href="#s3">変更2：シャトル書込フラグON ＋ マルチ化対応フラグ（Main2・4行追加）</a></li>
+<li><a href="#s4">変更3：指示受入可OFF中は書込フラグを0に保つ（Main2・28行追加）</a></li>
+<li><a href="#s5">使用デバイス一覧（新規に使うもの）</a></li>
+<li><a href="#s6">KV-STUDIO への取り込み手順</a></li>
+<li><a href="#s7">テスト手順</a></li>
+<li><a href="#s8">注意事項</a></li>
+</ol>
+</div>
+
+<div class="legend">
+  <span><b>凡例:</b></span>
+  <span class="line"><span class="el contact"><span class="lbl">a接点</span><span class="sym"><i></i></span></span></span>
+  <span class="line"><span class="el contact b"><span class="lbl">b接点(LDB)</span><span class="sym"><i></i></span></span></span>
+  <span class="line"><span class="el box"><span class="lbl">命令</span><span class="sym"><span class="bx">MOV 等</span></span></span></span>
+  <span style="color:var(--add);font-weight:700">緑＝今回追加／変更後</span>
+  <span style="color:var(--del);font-weight:700">赤＝変更前</span>
+  <span>薄いラング＝前後の既存回路（変更しない）</span>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">① 対象ファイルと変更範囲</h2>
+<div class="tblwrap">
+<table>
+  <tr><th>ファイル（<code>KV_MQTT_ALL/</code>）</th><th>変更</th><th>FB</th><th>内容</th></tr>
+  <tr class="hl"><td><code>Main.mnm</code></td><td><b>あり</b></td><td>FB入り（FBCALL 4件）</td>
+      <td>変更1：スクリプトボックス（BOX_ST）内の機器マスタ定義 180件</td></tr>
+  <tr class="hl"><td><code>Main2.mnm</code></td><td><b>あり</b></td><td>FB入り</td>
+      <td>変更2（4行）＋変更3（28行）</td></tr>
+  <tr><td><code>MQTTSC_Copyright.mnm</code></td><td>なし</td><td>—</td><td rowspan="5">ベース <code>KV_MQTT_FIX7_FIN2</code> と<b>バイト単位で同一</b>。取り込み不要だが、セットとして同梱している</td></tr>
+  <tr><td><code>MQTTSC_MAIN_SAMPLE.mnm</code></td><td>なし</td><td>—</td></tr>
+  <tr><td><code>MQTTSC_MANAGE_SAMPLE.mnm</code></td><td>なし</td><td>—</td></tr>
+  <tr><td><code>M_StrProcessing_JSONDeserialize_F_00A.mnm</code></td><td>なし</td><td>—</td></tr>
+  <tr><td><code>M_StrProcessing_JSONSerialize_F_00A.mnm</code></td><td>なし</td><td>—</td></tr>
+  <tr><td><code>スクリプトボックス貼付用.txt</code></td><td>—</td><td>—</td>
+      <td>変更1の反映用。<b>★印18ブロック</b>が変更対象（下記②-⑤参照）</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s2">② 変更1：機器マスタ DeviceId 採番変更（Main・180件）</h2>
+
+<h3>②-1 目的と変換規則</h3>
+<div class="callout add">
+<b>ねらい：</b> 機器マスタの DeviceId を<b>全機器 号機 01 始まり</b>に揃える。
+併せて「9x91」だけは<b>機器種別（千の位）も 9 → 3 に変更</b>する。
+</div>
+<p class="sub">対象は <code>Main</code> の<b>初回スキャン用スクリプトボックス（<code>BOX_ST</code>）</b>内の機器マスタ定義。
+<code>LD _FirstScanOn</code> ＋ <code>BOX_ST</code> の形で、<b>9レーン分</b>が並んでいる。
+DeviceId は <b>16進（BCD）表記</b>で定義されている（例 <code>DM1000 := H7121;</code>）。</p>
+
+<div class="tblwrap">
+<table>
+  <tr><th>変換規則（x＝レーン桁 1〜9）</th><th>変更前</th><th>変更後</th><th>件数</th><th>該当ブロック</th></tr>
+  <tr class="hl"><td>ST（入庫バッファ）ステータス系</td><td class="old">7x21 〜 7x28</td><td class="new">7x01 〜 7x08</td><td>72</td><td>STｽﾃｰﾀｽ（<code>DMx000〜DMx007</code>）</td></tr>
+  <tr class="hl"><td>ST 系（2群目）</td><td class="old">8x11 〜 8x18</td><td class="new">8x01 〜 8x08</td><td>72</td><td>STｽﾃｰﾀｽ（<code>DMx016〜DMx023</code>）</td></tr>
+  <tr class="hl"><td>ステーション系</td><td class="old">6x20</td><td class="new">6x01</td><td>18</td>
+      <td>STｽﾃｰﾀｽの <code>DMx064</code> ＋ コンベヤ到着/離席の <code>DMx190</code>（<b>両方</b>／各9レーン）</td></tr>
+  <tr class="hl"><td>種別9 系</td><td class="old">9x10</td><td class="new">9x01</td><td>9</td><td>STｽﾃｰﾀｽ（<code>DMx068</code>）</td></tr>
+  <tr class="hl"><td><b>種別変更あり</b></td><td class="old">9x91</td><td class="new">3x01</td><td>9</td>
+      <td>STｽﾃｰﾀｽ（<code>DMx070</code>）。<b>千の位＝機器種別も 9→3</b></td></tr>
+  <tr><td>シャトル（5xxx）</td><td colspan="2" style="text-align:center">変更なし（<code>5x01〜5x08</code> のまま）</td><td>—</td><td>ｼｬﾄﾙ/ レーンx（<code>DMx075〜DMx082</code>）</td></tr>
+  <tr><td>サーバ（4xxx）</td><td colspan="2" style="text-align:center">変更なし（<code>4x01〜4x02</code> のまま）</td><td>—</td><td>ｻｰﾊﾞｰ/ レーンx</td></tr>
+  <tr><td colspan="3"><b>合計</b></td><td><b>180</b></td><td>36ボックス中 <b>18ボックス</b>が変更対象</td></tr>
+</table>
+</div>
+
+<h3>②-2 レーン1の変更前／変更後 対比表</h3>
+<p class="sub">レーン2〜9 は千の位（DMアドレス）とレーン桁が上がるだけで、規則は完全に同じ
+（例：レーン2 は <code>DM2000 := H7201;</code> …）。</p>
+<div class="tblwrap">
+<table>
+  <tr><th>ブロック</th><th>デバイス</th><th>変更前</th><th>変更後</th><th>備考</th></tr>
+  <tr class="hl"><td rowspan="19"><b>STｽﾃｰﾀｽ　レーン1</b></td><td><code>DM1000</code></td><td class="old">H7121</td><td class="new">H7101</td><td rowspan="8">7x21〜7x28 → 7x01〜7x08</td></tr>
+  <tr class="hl"><td><code>DM1001</code></td><td class="old">H7122</td><td class="new">H7102</td></tr>
+  <tr class="hl"><td><code>DM1002</code></td><td class="old">H7123</td><td class="new">H7103</td></tr>
+  <tr class="hl"><td><code>DM1003</code></td><td class="old">H7124</td><td class="new">H7104</td></tr>
+  <tr class="hl"><td><code>DM1004</code></td><td class="old">H7125</td><td class="new">H7105</td></tr>
+  <tr class="hl"><td><code>DM1005</code></td><td class="old">H7126</td><td class="new">H7106</td></tr>
+  <tr class="hl"><td><code>DM1006</code></td><td class="old">H7127</td><td class="new">H7107</td></tr>
+  <tr class="hl"><td><code>DM1007</code></td><td class="old">H7128</td><td class="new">H7108</td></tr>
+  <tr class="hl"><td><code>DM1016</code></td><td class="old">H8111</td><td class="new">H8101</td><td rowspan="8">8x11〜8x18 → 8x01〜8x08</td></tr>
+  <tr class="hl"><td><code>DM1017</code></td><td class="old">H8112</td><td class="new">H8102</td></tr>
+  <tr class="hl"><td><code>DM1018</code></td><td class="old">H8113</td><td class="new">H8103</td></tr>
+  <tr class="hl"><td><code>DM1019</code></td><td class="old">H8114</td><td class="new">H8104</td></tr>
+  <tr class="hl"><td><code>DM1020</code></td><td class="old">H8115</td><td class="new">H8105</td></tr>
+  <tr class="hl"><td><code>DM1021</code></td><td class="old">H8116</td><td class="new">H8106</td></tr>
+  <tr class="hl"><td><code>DM1022</code></td><td class="old">H8117</td><td class="new">H8107</td></tr>
+  <tr class="hl"><td><code>DM1023</code></td><td class="old">H8118</td><td class="new">H8108</td></tr>
+  <tr class="hl"><td><code>DM1064</code></td><td class="old">H6120</td><td class="new">H6101</td><td>6x20 → 6x01</td></tr>
+  <tr class="hl"><td><code>DM1068</code></td><td class="old">H9110</td><td class="new">H9101</td><td>9x10 → 9x01</td></tr>
+  <tr class="hl"><td><code>DM1070</code></td><td class="old">H9191</td><td class="new">H3101</td><td><b>種別も変更</b>（9→3）</td></tr>
+  <tr class="hl"><td><b>コンベヤ到着/離席<br>ステーションNO./レーン1</b></td><td><code>DM1190</code></td><td class="old">H6120</td><td class="new">H6101</td><td>6x20 → 6x01（<code>DM1064</code> と同じ規則）</td></tr>
+  <tr><td><b>ｼｬﾄﾙ/ レーン1</b></td><td><code>DM1075〜DM1082</code></td><td colspan="2" style="text-align:center">H5101〜H5108（<b>変更なし</b>）</td><td>参考</td></tr>
+</table>
+</div>
+
+<h3>②-3 変更後の DeviceId 全体像</h3>
+<div class="callout ok">
+変更後は、機器種別ごとに<b>全機器が 01 始まり</b>で揃う。
+<div class="tblwrap">
+<table style="margin:8px 0 0">
+  <tr><th>機器種別（千の位）</th><th>号機番号</th><th>1レーンあたり件数</th><th>全9レーン合計</th></tr>
+  <tr class="hl"><td><b>3</b>（新設）</td><td>01</td><td>1</td><td>9</td></tr>
+  <tr><td>4（サーバ）</td><td>01〜02</td><td>2</td><td>18</td></tr>
+  <tr><td>5（シャトル）</td><td>01〜08</td><td>8</td><td>72</td></tr>
+  <tr class="hl"><td>6</td><td>01</td><td>2（<code>DMx064</code>／<code>DMx190</code>）</td><td>18</td></tr>
+  <tr class="hl"><td>7</td><td>01〜08</td><td>8</td><td>72</td></tr>
+  <tr class="hl"><td>8</td><td>01〜08</td><td>8</td><td>72</td></tr>
+  <tr class="hl"><td>9</td><td>01</td><td>1</td><td>9</td></tr>
+</table>
+</div>
+</div>
+
+<h3>②-4 影響範囲の調査結果（ハードコード参照ゼロ）</h3>
+<div class="callout">
+<b>結論：マスタ値を書き換えても他の回路には一切影響しない。</b>
+<ul style="margin:6px 0">
+<li>マスタ値は <code>FUN BCD_TO_UINT DM20002:Z7 DM1000:Z2</code> のような形で
+<b>publish 電文の DeviceId に載せるためだけ</b>に使われている（<code>Main</code> のステータス送信処理）。</li>
+<li><b>比較定数などのハードコード参照は全モジュールで 0 件</b>。
+旧ID 180種を <b>16進表記（<code>H7121</code>／<code>$7121</code>）</b>・<b>10進定数（<code>#28961</code> 相当）</b>の
+<b>3形式で全数検索</b>して確認済み。</li>
+<li>受信側 <code>Main2</code> は機種名 <code>'S'</code>（シャトル）／<code>'SV'</code>（サーバ）<b>のみ</b>を処理対象にしており、
+今回変更した 3/6/7/8/9 系の DeviceId は受信経路に登場しない。<b><code>Main2</code> 側の対応は不要</b>。</li>
+</ul>
+</div>
+<div class="callout warn">
+<b>外部影響：ACS 側の DeviceId 対応表の更新が必須。</b>
+publish される DeviceId が変わるため、上位（ACS）の対応表を<b>必ず同時に更新</b>すること。
+特に <b>新種別 "3" の追加</b>（旧 <code>9x91</code> → 新 <code>3x01</code>）は、種別そのものが増えるので見落としやすい。
+</div>
+
+<h3>②-5 反映方法（スクリプトボックスはラダーではなくテキスト）</h3>
+<div class="callout warn">
+<b>重要：</b> 機器マスタは<b>スクリプトボックス（<code>BOX_ST</code>）の中身＝テキスト</b>であり、ラダー回路ではない。
+ニモニック（<code>.mnm</code>）取り込みでスクリプトボックスの中身が<b>復元される場合はそれでよい</b>が、
+復元されない・空になる場合は、下記のとおり<b>テキストを貼り替える</b>。
+</div>
+<ol>
+<li><code>KV_MQTT_ALL/スクリプトボックス貼付用.txt</code> を開く。</li>
+<li>ファイル内には<b>36ボックス分</b>が並んでおり、うち <b>★印の18ブロック</b>が今回の変更対象。
+  <ul>
+  <li><b>★変更あり</b>：<code>STｽﾃｰﾀｽ レーン1〜9</code>（9ブロック）</li>
+  <li><b>★変更あり</b>：<code>コンベヤ到着/離席ステーションNO./レーン1〜9</code>（9ブロック）</li>
+  <li><b>（変更なし）</b>：<code>ｼｬﾄﾙ/ レーン1〜9</code>、<code>ｻｰﾊﾞｰ/ レーン1〜9</code>（計18ブロック・貼り替え不要）</li>
+  </ul></li>
+<li>KV-STUDIO で該当スクリプトボックスを開き、<b>中身を全選択して</b>対応ブロックのテキストに<b>差し替える</b>。</li>
+<li>18ブロックすべてについて繰り返す。</li>
+<li><b>変換（F4）でエラー0件</b>を確認する。</li>
+</ol>
+<div class="callout warn">
+<b>反映には PLC の再起動が必要。</b> このマスタは <code>LD _FirstScanOn</code>（運転開始時の1スキャンのみON）で
+初期化されるため、転送しただけでは値が入れ替わらない。
+<b>PLC を再起動する（または PROGRAM → RUN に切り替える）</b>ことで初回スキャンを走らせること。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s3">③ 変更2：シャトル書込フラグON ＋ マルチ化対応フラグ（Main2・4行追加）</h2>
+
+<h3>③-1 発覚した不具合</h3>
+<div class="callout warn">
+<b>(a) シャトルの書込フラグが未実装だった。</b><br>
+三菱PLCへ渡す指示エリアには、指示データが揃ったことを知らせる<b>書込フラグ</b>が各ブロックに1ワード用意されている。
+<b>サーバ</b>側は <code>@MOV #1 ZF9:Z7</code> で書込フラグONが<b>すでに実装済み</b>だったが、
+<b>シャトル</b>側は指示データ（作業種別・作業No.・列連段など）は書いているのに、
+<b>書込フラグ（ブロック+19）をどこにも書いていなかった</b>。
+<br><br>
+<b>(b) マルチ化対応フラグが ZF へ一切書かれていなかった。</b><br>
+JSON の <code>MultiFlag</code> は抽出処理で <code>DM768 / DM798 / DM828</code> に格納され、
+キュー（<code>DM30028 / DM30058 / DM30088</code>）まで<b>正しく届いていた</b>が、
+そこから<b>指示エリア（ZF）へ転記する処理が存在しなかった</b>ため、三菱側には永久に渡っていなかった。
+</div>
+
+<h3>③-2 PIO表で確定した割付</h3>
+<div class="tblwrap">
+<table>
+  <tr><th>区分</th><th>指示エリア</th><th>書込フラグ</th><th>マルチ化対応フラグ</th><th>実アドレス</th></tr>
+  <tr class="hl"><td><b>シャトル</b></td><td>1台あたり <b>20ワード</b>ブロック</td>
+      <td>ブロック <b>+19</b></td><td>ブロック <b>+18</b></td>
+      <td>書込フラグ <code>D0419 / D0439 / D0459 / … / D0559</code>（8台）<br>
+          マルチ <code>D0418 / D0438 / D0458 / … / D0558</code>（8台）</td></tr>
+  <tr><td><b>サーバ</b></td><td>1台あたり <b>10ワード</b>ブロック</td>
+      <td>ブロック <b>+9</b></td><td><b>該当レジスタなし</b></td>
+      <td>書込フラグ <code>D0729 / D0739</code>（2台）<br>
+          <code>D0728</code> は PIO表で<b>空欄</b>＝マルチ化対応フラグは<b>サーバには存在しない</b></td></tr>
+</table>
+</div>
+<p class="sub">※ PIO表（<code>90_添付1-1 PIO表(PLC10_S&amp;S_1レーン)_Rev0.xlsm</code>）では
+半角カナで <b>「ﾏﾙﾁ化対応ﾌﾗｸﾞ」</b> と表記されている項目。</p>
+
+<h3>③-3 挿入位置</h3>
+<p class="pos">シャトルブランチの<b>末尾</b>。
+<code>FUNLD StringCmp DM30000 'S'</code> ＋ <code>MPS</code> ＋ <code>MOV DM25101 ZF1:Z7</code>（作業種別）の
+MPSブロック内、<b><code>MPP</code> の手前</b>に4行を足す。<br>
+KV-STUDIO での探し方：<code>MOV DM25101 ZF1:Z7</code> を検索し、
+<b>その後ろに <code>MPP</code> → <code>LD MR2410</code> → <code>OUT MR3510</code> が続く方</b>のブロック
+（変更前 <code>Main2</code> r574〜577 付近／変更後 r574〜581）。</p>
+
+<h3>③-4 ラダー（緑＝追加）</h3>
+<div class="ladder">
+
+  <div class="rung ctx">
+    <div class="num">既存 r574</div><div class="rail"></div>
+    <div class="line">
+      <span class="el box"><span class="lbl">機種名='S'</span><span class="sym"><span class="bx">FUNLD StringCmp DM30000 'S'</span></span></span>
+      <span class="el wire grow"><span class="lbl">シャトル宛の受信のとき（MPSでブランチ開始）</span><span class="sym"></span></span>
+    </div>
+  </div>
+
+  <div class="rung">
+    <div class="num">既存 r576<br>＋追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el wire"><span class="lbl">MPS</span><span class="sym"></span></span>
+      <span class="par">
+        <span class="branch">
+          <span class="el wire"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box"><span class="lbl">作業種別（既存）</span><span class="sym"><span class="bx">MOV DM25101 ZF1:Z7</span></span></span>
+          <span class="el wire grow"><span class="lbl">ブロック+1 へ作業種別を書く</span><span class="sym"></span></span>
+        </span>
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">★ MRD（追加）</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">書込フラグON</span><span class="sym"><span class="bx">@MOV #1 ZF19:Z7</span></span></span>
+          <span class="el wire grow add"><span class="lbl">ブロック+19 に 1 を書く（立上り実行）</span><span class="sym"></span></span>
+        </span>
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">★ MRD（追加）</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">マルチ化対応フラグ</span><span class="sym"><span class="bx">MOV DM30028 ZF18:Z7</span></span></span>
+          <span class="el wire grow add"><span class="lbl">ブロック+18 へ MultiFlag を転記</span><span class="sym"></span></span>
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <div class="rung ctx">
+    <div class="num">既存 r581</div><div class="rail"></div>
+    <div class="line">
+      <span class="el wire"><span class="lbl">MPP</span><span class="sym"></span></span>
+      <span class="el box"><span class="lbl">以降は既存のまま</span><span class="sym"><span class="bx">LD MR2410 … OUT MR3510（置き換え完了）</span></span></span>
+      <span class="el wire grow"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+    </div>
+  </div>
+
+</div>
+
+<h3>③-5 ニモニックリスト（★の4行だけを追加）</h3>
+<div class="mn">FUNLD StringCmp DM30000 'S'   <span class="c">; 機種名='S'（シャトル宛）</span>
+MPS
+MOV DM25101 ZF1:Z7            <span class="c">; 作業種別（既存）</span>
+<span class="n">MRD                           ← 追加</span>
+<span class="n">@MOV #1 ZF19:Z7               ← 追加（書込フラグON／ブロック+19）</span>
+<span class="n">MRD                           ← 追加</span>
+<span class="n">MOV DM30028 ZF18:Z7           ← 追加（マルチ化対応フラグ／ブロック+18）</span>
+MPP</div>
+
+<h3>③-6 ポイント解説</h3>
+<div class="callout ok">
+<b><code>ZF19:Z7</code> ／ <code>ZF18:Z7</code> が D0419／D0418 等になる理由：</b>
+この時点で <code>Z7</code> は、直前の「ｼｬﾄﾙNo.1〜No.8… オフセット計算ラング」
+（<code>CAL* DM25002 #20 DM25008</code> → … → <code>MOV DM25014 Z7</code>）によって、
+<b>対象号機ブロックの先頭アドレス</b>を指している。
+したがって <code>ZF19:Z7</code> ＝ <b>ブロック先頭 +19</b>、<code>ZF18:Z7</code> ＝ <b>ブロック先頭 +18</b> になる
+（101号機なら <code>D0419</code>／<code>D0418</code>、102号機なら <code>D0439</code>／<code>D0438</code>…）。
+既存の <code>MOV DM25101 ZF1:Z7</code>（＋1＝作業種別）と同じ土台なので、号機ごとの計算は不要。
+</div>
+
+<div class="callout">
+<b><code>DM30028</code> がマルチ化対応フラグである根拠：</b>
+受信レコードは <code>DM740</code> を基準に組み立てられており、
+<b>+26 ＝ Station（列/ST:Toロケーション）＝ <code>DM766</code></b>、
+<b>+28 ＝ MultiFlag ＝ <code>DM768</code></b>（JSON抽出処理で <code>MOV #1 DM768</code> / <code>MOV #0 DM768</code> と書かれている）。
+これがキュー領域へ転送されると <code>DM30000</code> 基準の同じオフセットになり、
+<b><code>DM30026</code> が Station、<code>DM30028</code> が MultiFlag</b> となる。
+実際 <code>DM30026</code> は既存回路で <code>MOV.D DM30026 Station</code>／<code>MOV DM30026 Station_SV</code> として
+<b>Station に使われている</b>ため、<code>DM30028</code>＝MultiFlag のオフセット対応は裏付けが取れている。
+</div>
+
+<div class="callout warn">
+<b>MultiFlag の格納先が1つしかない件（ユーザー決定事項）：</b>
+仕様書上 <code>MultiFlag</code> は <b>Job ごと</b>（1＝マルチ化対応／0＝非対応）に定義されているが、
+指示エリア側の格納先は<b>ブロックに1ワードしかない</b>（+18）。
+そのため <b>Job1 の値（<code>DM30028</code>）を採用</b>する。
+Job2（<code>DM30058</code>）／Job3（<code>DM30088</code>）は転記しない。
+</div>
+
+<div class="callout">
+<b>ON側だけ <code>@MOV</code>（微分実行）にしている理由：</b> サーバ側の既存 <code>@MOV #1 ZF9:Z7</code> と揃えている。
+条件成立の<b>立上り1スキャンだけ</b>書くので、フラグを常時 1 で塗り続けない。
+これにより、次章の「受入可OFFで0に落とす」ループが<b>0を書き勝てる</b>（毎スキャン0が優先される）。
+なおマルチ化対応フラグは<b>データ</b>であって<b>フラグ制御の対象外</b>なので、通常の <code>MOV</code>（毎スキャン）でよい。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s4">④ 変更3：指示受入可OFF中は書込フラグを0に保つ（Main2・28行追加）</h2>
+
+<h3>④-1 目的と確定仕様</h3>
+<div class="callout warn">
+<b>問題：</b> 相手が「<b>指示受入可</b>」でなくなった（bit4＝OFF）ときに<b>書込フラグを落とす処理が無い</b>ため、
+受け側が受け付けられない状態でもフラグが立ちっぱなしになる。
+</div>
+<div class="callout add">
+<b>確定仕様：</b>
+<ol style="margin:6px 0">
+<li>対象は<b>シャトル・サーバの両方</b>。</li>
+<li><b>書込フラグだけ</b>を 0 にする。<b>指示データ（<code>ZF1〜ZF13</code> 等）はそのまま残す</b>。</li>
+<li>受入可OFFの<b>間はずっと 0</b>（毎スキャン監視）。OFF中に新しい指示が来ても<b>フラグは立たない</b>＝<b>事実上の受付拒否</b>。</li>
+</ol>
+</div>
+
+<h3>④-2 「指示受入可」の割付</h3>
+<div class="tblwrap">
+<table>
+  <tr><th>区分</th><th>指示受入可（ステータス側）</th><th>落とす対象（指示エリア側）</th><th>台数</th></tr>
+  <tr class="hl"><td><b>シャトル</b></td><td><code>D0150〜D0157</code> の <b>bit4</b></td><td>書込フラグ ＝ ブロック <b>+19</b>（<code>D0419〜D0559</code>）</td><td>8</td></tr>
+  <tr class="hl"><td><b>サーバ</b></td><td><code>D0190 / D0191</code> の <b>bit4</b></td><td>書込フラグ ＝ ブロック <b>+9</b>（<code>D0729 / D0739</code>）</td><td>2</td></tr>
+</table>
+</div>
+<p class="sub">「bit4＝指示受入可」は、送信側 <code>Main</code> が
+<code>MOV ZF150:Z1 MR30100</code> でステータスワードをMRチャネルへ展開し、
+<code>MR30104</code>（＝bit4）を「分解/指示受入可」として <code>DM20016</code> の受入可否文字列に使っている構造と一致している
+（<code>Main</code> r1199 / r1229・r1232）。今回はこれと<b>同じ定石</b>で判定する。</p>
+
+<h3>④-3 挿入位置</h3>
+<p class="pos"><code>Main2</code> の<b><code>END</code> の直前</b>
+（変更前 r657 <code>OUT MR3511</code> の直後／変更後 r660〜687）。
+シャトル用 <code>FOR #8</code> ループとサーバ用 <code>FOR #2</code> ループを、この順で新規に2本作る。</p>
+
+<h3>④-4 ラダー：シャトル側（FOR #8）</h3>
+<div class="ladder">
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact add"><span class="lbl">_AlwaysOn</span><span class="sym"><i></i></span></span>
+      <span class="par add">
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">ステータス側 初期化</span><span class="sym"><span class="bx">MOV DM110 Z1</span></span></span>
+          <span class="el wire grow add"><span class="lbl">レーン用アドレス起点</span><span class="sym"></span></span>
+        </span>
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">指示エリア側 初期化</span><span class="sym"><span class="bx">MOV DM110 Z2</span></span></span>
+          <span class="el wire grow add"><span class="lbl">レーン用アドレス起点</span><span class="sym"></span></span>
+        </span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="forbox">
+<div class="forlbl">FOR #8 　─ 8台分くり返す ─</div>
+<div class="ladder" style="margin:0">
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact add"><span class="lbl">_AlwaysOn</span><span class="sym"><i></i></span></span>
+      <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+      <span class="el box add"><span class="lbl">ステータスワードをMRへ展開</span><span class="sym"><span class="bx">MOV ZF150:Z1 MR31500</span></span></span>
+      <span class="el wire grow add"><span class="lbl">MR31500〜31515 が bit0〜bit15</span><span class="sym"></span></span>
+    </div>
+  </div>
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact b add"><span class="lbl">MR31504（bit4）</span><span class="sym"><i></i></span></span>
+      <span class="el wire add"><span class="lbl">指示受入可＝OFF のとき成立</span><span class="sym"></span></span>
+      <span class="el box add"><span class="lbl">書込フラグを0に</span><span class="sym"><span class="bx">MOV #0 ZF419:Z2</span></span></span>
+      <span class="el wire grow add"><span class="lbl">ブロック+19 ← 0（毎スキャン）</span><span class="sym"></span></span>
+    </div>
+  </div>
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact add"><span class="lbl">_AlwaysOn</span><span class="sym"><i></i></span></span>
+      <span class="par add">
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">次の号機へ</span><span class="sym"><span class="bx">CAL+ Z1 #1 Z1</span></span></span>
+          <span class="el wire grow add"><span class="lbl">ステータスは1ワードずつ</span><span class="sym"></span></span>
+        </span>
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">次のブロックへ</span><span class="sym"><span class="bx">CAL+ Z2 #20 Z2</span></span></span>
+          <span class="el wire grow add"><span class="lbl">指示エリアは20ワードずつ</span><span class="sym"></span></span>
+        </span>
+      </span>
+    </div>
+  </div>
+</div>
+<div class="forlbl" style="margin:6px 0 0">NEXT</div>
+</div>
+
+<h3>④-5 ラダー：サーバ側（FOR #2）</h3>
+<p class="sub">構造はシャトル側とまったく同じ。<b>参照先と刻み幅だけ</b>が違う
+（<code>ZF150→ZF190</code> ／ <code>ZF419→ZF729</code> ／ <code>MR315xx→MR316xx</code> ／ <code>#20→#10</code> ／ <code>FOR #8→FOR #2</code>）。</p>
+<div class="ladder">
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact add"><span class="lbl">_AlwaysOn</span><span class="sym"><i></i></span></span>
+      <span class="par add">
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">ステータス側 初期化</span><span class="sym"><span class="bx">MOV DM110 Z1</span></span></span>
+          <span class="el wire grow add"><span class="lbl">レーン用アドレス起点</span><span class="sym"></span></span>
+        </span>
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">指示エリア側 初期化</span><span class="sym"><span class="bx">MOV DM110 Z2</span></span></span>
+          <span class="el wire grow add"><span class="lbl">レーン用アドレス起点</span><span class="sym"></span></span>
+        </span>
+      </span>
+    </div>
+  </div>
+</div>
+<div class="forbox">
+<div class="forlbl">FOR #2 　─ 2台分くり返す ─</div>
+<div class="ladder" style="margin:0">
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact add"><span class="lbl">_AlwaysOn</span><span class="sym"><i></i></span></span>
+      <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+      <span class="el box add"><span class="lbl">ステータスワードをMRへ展開</span><span class="sym"><span class="bx">MOV ZF190:Z1 MR31600</span></span></span>
+      <span class="el wire grow add"><span class="lbl">MR31600〜31615 が bit0〜bit15</span><span class="sym"></span></span>
+    </div>
+  </div>
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact b add"><span class="lbl">MR31604（bit4）</span><span class="sym"><i></i></span></span>
+      <span class="el wire add"><span class="lbl">指示受入可＝OFF のとき成立</span><span class="sym"></span></span>
+      <span class="el box add"><span class="lbl">書込フラグを0に</span><span class="sym"><span class="bx">MOV #0 ZF729:Z2</span></span></span>
+      <span class="el wire grow add"><span class="lbl">ブロック+9 ← 0（毎スキャン）</span><span class="sym"></span></span>
+    </div>
+  </div>
+  <div class="rung newrung">
+    <div class="num">★ 追加</div><div class="rail"></div>
+    <div class="line">
+      <span class="el contact add"><span class="lbl">_AlwaysOn</span><span class="sym"><i></i></span></span>
+      <span class="par add">
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">次の号機へ</span><span class="sym"><span class="bx">CAL+ Z1 #1 Z1</span></span></span>
+          <span class="el wire grow add"><span class="lbl">ステータスは1ワードずつ</span><span class="sym"></span></span>
+        </span>
+        <span class="branch">
+          <span class="el wire add"><span class="lbl">&nbsp;</span><span class="sym"></span></span>
+          <span class="el box add"><span class="lbl">次のブロックへ</span><span class="sym"><span class="bx">CAL+ Z2 #10 Z2</span></span></span>
+          <span class="el wire grow add"><span class="lbl">指示エリアは10ワードずつ</span><span class="sym"></span></span>
+        </span>
+      </span>
+    </div>
+  </div>
+</div>
+<div class="forlbl" style="margin:6px 0 0">NEXT</div>
+</div>
+
+<h3>④-6 ニモニックリスト（END直前に追加する28行）</h3>
+<div class="mn"><span class="c">RUNG_COMMENT
+;書込フラグ制御 指示受入可(D0150〜)OFF中はシャトルの書込フラグ(ブロック+19)を0に保つ</span>
+LD _AlwaysOn
+MOV DM110 Z1             <span class="c">; Z1 = ステータス側インデックス（レーン用アドレス起点）</span>
+MOV DM110 Z2             <span class="c">; Z2 = 指示エリア側インデックス（レーン用アドレス起点）</span>
+FOR #8                   <span class="c">; シャトル8台分</span>
+LD _AlwaysOn
+MOV ZF150:Z1 MR31500     <span class="c">; ステータスワードをMRチャネルへ展開（Mainの定石と同じ）</span>
+LDB MR31504              <span class="c">; bit4 = 指示受入可。B接点なので「OFFのとき」成立</span>
+MOV #0 ZF419:Z2          <span class="c">; 書込フラグ（ブロック+19）を 0 に</span>
+LD _AlwaysOn
+CAL+ Z1 #1 Z1            <span class="c">; ステータスは +1</span>
+CAL+ Z2 #20 Z2           <span class="c">; 指示エリアは +20</span>
+NEXT
+<span class="c">RUNG_COMMENT
+;書込フラグ制御 指示受入可(D0190〜)OFF中はサーバの書込フラグ(ブロック+9)を0に保つ</span>
+LD _AlwaysOn
+MOV DM110 Z1
+MOV DM110 Z2
+FOR #2                   <span class="c">; サーバ2台分</span>
+LD _AlwaysOn
+MOV ZF190:Z1 MR31600
+LDB MR31604              <span class="c">; bit4 = 指示受入可（B接点）</span>
+MOV #0 ZF729:Z2          <span class="c">; 書込フラグ（ブロック+9）を 0 に</span>
+LD _AlwaysOn
+CAL+ Z1 #1 Z1
+CAL+ Z2 #10 Z2
+NEXT</div>
+
+<h3>④-7 アドレス展開表（ループが実際に触るアドレス）</h3>
+<p class="sub"><code>DM110</code> は「レーン用アドレス」＝レーンオフセットの起点（1レーン目は 0、以降 +2000）。
+下表は 1レーン目（<code>DM110</code>＝0）の値。</p>
+<div class="tblwrap">
+<table>
+  <tr><th>区分</th><th>周回 n</th><th>Z1</th><th>ステータス <code>ZF150:Z1</code> / <code>ZF190:Z1</code></th><th>Z2</th><th>書込フラグ <code>ZF419:Z2</code> / <code>ZF729:Z2</code></th></tr>
+  <tr class="hl"><td rowspan="9"><b>シャトル</b><br>FOR #8</td><td>0</td><td>0</td><td><code>ZF150</code>（D0150）</td><td>0</td><td><code>ZF419</code>（D0419）</td></tr>
+  <tr><td>1</td><td>1</td><td><code>ZF151</code></td><td>20</td><td><code>ZF439</code></td></tr>
+  <tr><td>2</td><td>2</td><td><code>ZF152</code></td><td>40</td><td><code>ZF459</code></td></tr>
+  <tr><td>3</td><td>3</td><td><code>ZF153</code></td><td>60</td><td><code>ZF479</code></td></tr>
+  <tr><td>4</td><td>4</td><td><code>ZF154</code></td><td>80</td><td><code>ZF499</code></td></tr>
+  <tr><td>5</td><td>5</td><td><code>ZF155</code></td><td>100</td><td><code>ZF519</code></td></tr>
+  <tr><td>6</td><td>6</td><td><code>ZF156</code></td><td>120</td><td><code>ZF539</code></td></tr>
+  <tr><td>7</td><td>7</td><td><code>ZF157</code>（D0157）</td><td>140</td><td><code>ZF559</code>（D0559）</td></tr>
+  <tr><td colspan="5" style="color:var(--muted)">計8台。ステータスは1ワード刻み、指示エリアは20ワード刻みで対応が1:1に揃う。</td></tr>
+  <tr class="hl"><td rowspan="3"><b>サーバ</b><br>FOR #2</td><td>0</td><td>0</td><td><code>ZF190</code>（D0190）</td><td>0</td><td><code>ZF729</code>（D0729）</td></tr>
+  <tr><td>1</td><td>1</td><td><code>ZF191</code>（D0191）</td><td>10</td><td><code>ZF739</code>（D0739）</td></tr>
+  <tr><td colspan="5" style="color:var(--muted)">計2台。ステータスは1ワード刻み、指示エリアは10ワード刻み。</td></tr>
+</table>
+</div>
+
+<div class="callout ok">
+<b>サーバ側の号機対応が合っている根拠：</b>
+既に <b>4101＝入庫（<code>ZF720</code> ブロック）／4102＝出庫（<code>ZF730</code> ブロック）</b>の入替が入っており、
+<b>サーバNo.1（<code>ZF190</code>）↔ 4101 ↔ <code>ZF729</code></b>、
+<b>サーバNo.2（<code>ZF191</code>）↔ 4102 ↔ <code>ZF739</code></b> で整合する。
+このループの +10 刻みはその並びをそのままなぞっている。
+</div>
+
+<h3>④-8 ポイント解説</h3>
+<div class="tblwrap">
+<table>
+  <tr><th>命令</th><th>意味・ねらい</th></tr>
+  <tr><td><code>MOV DM110 Z1</code><br><code>MOV DM110 Z2</code></td>
+      <td>2本のインデックスを<b>同じ起点</b>（レーン用アドレス）から始める。以降 <code>Z1</code> はステータス側、<code>Z2</code> は指示エリア側として別々の刻みで進む。</td></tr>
+  <tr><td><code>MOV ZF150:Z1 MR31500</code></td>
+      <td>ステータス<b>ワード</b>を MR チャネルへ展開して、ビット単位で触れるようにする既存の定石。
+      送信側 <code>Main</code> の <code>MOV ZF150:Z1 MR30100</code>（r1199）とまったく同じ手法。展開後は <b><code>MR31504</code> が bit4＝指示受入可</b>。</td></tr>
+  <tr><td><code>LDB MR31504</code></td>
+      <td><b>B接点（ノーマルクローズ）</b>なので、<b>受入可が OFF のときに成立</b>する。
+      成立している間は毎スキャン下の <code>MOV #0</code> が走るため、<b>OFF中はずっと 0</b> に保たれる。</td></tr>
+  <tr><td><code>MOV #0 ZF419:Z2</code></td>
+      <td>書込フラグ<b>1ワードだけ</b>を 0 にする。<code>ZF1〜ZF13</code> や <code>ZF18</code>（マルチ化対応フラグ）には一切触らない。</td></tr>
+  <tr><td><code>CAL+ Z1 #1 Z1</code><br><code>CAL+ Z2 #20 Z2</code></td>
+      <td>ループ末尾でインデックスを次の号機へ進める。ステータスは +1、指示エリアは +20（サーバは +10）。</td></tr>
+</table>
+</div>
+
+<div class="callout add">
+<b>「事実上の受付拒否」になる仕組み：</b>
+変更2のON側は <code>@MOV</code>（立上り1スキャンのみ）、変更3のOFF側は毎スキャン実行。
+受入可OFF中に新しい作業指示が来ると、指示データは <code>ZF1〜ZF13</code> 等に<b>更新される</b>が、
+書込フラグは同じスキャン内・以降のスキャンで <b>0 に上書きされ続ける</b>ため立たない。
+受け側から見ると「データはあるが書込フラグが立っていない＝取り込まない」となり、拒否として振る舞う。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s5">⑤ 使用デバイス一覧（新規に使うもの）</h2>
+<div class="tblwrap">
+<table>
+  <tr><th>デバイス</th><th>区分</th><th>役割</th><th>空き確認</th></tr>
+  <tr class="hl"><td><code>MR31500〜MR31515</code></td><td><b>新規</b></td>
+      <td>シャトルのステータスワード展開先。<code>MR31504</code>＝bit4＝指示受入可</td>
+      <td><b>全モジュールで未使用を確認済み</b></td></tr>
+  <tr class="hl"><td><code>MR31600〜MR31615</code></td><td><b>新規</b></td>
+      <td>サーバのステータスワード展開先。<code>MR31604</code>＝bit4＝指示受入可</td>
+      <td><b>全モジュールで未使用を確認済み</b></td></tr>
+  <tr class="hl"><td><code>Z1</code></td><td><b>新規（Main2内）</b></td><td>ステータス側インデックス（+1刻み）</td>
+      <td><code>Main2</code> で使用中のインデックスは <b><code>Z5</code>／<code>Z7</code> のみ</b>。<code>Z1</code> は空き</td></tr>
+  <tr class="hl"><td><code>Z2</code></td><td><b>新規（Main2内）</b></td><td>指示エリア側インデックス（+20／+10刻み）</td>
+      <td>同上。<code>Z2</code> は空き</td></tr>
+  <tr><td><code>DM110</code></td><td>既存</td><td>レーン用アドレス（レーンオフセットの起点）。参照のみ、変更しない</td><td>—</td></tr>
+  <tr><td><code>DM30028</code></td><td>既存</td><td>キュー上の MultiFlag（Job1）。参照のみ</td><td>—</td></tr>
+  <tr><td><code>ZF19:Z7</code> / <code>ZF18:Z7</code></td><td>既存領域</td>
+      <td>シャトル書込フラグ（+19）／マルチ化対応フラグ（+18）。<code>Z7</code> は既存のオフセット計算結果をそのまま利用</td><td>—</td></tr>
+  <tr><td><code>_AlwaysOn</code> / <code>_FirstScanOn</code></td><td>既存特殊</td><td>常時ON接点／運転開始1スキャンON接点</td><td>—</td></tr>
+</table>
+</div>
+<div class="callout warn">
+<b><code>Z1</code>／<code>Z2</code> は <code>Main2</code> のこの2ループ専用</b>として使う。
+<code>Main2</code> 内で他に使われているのは <code>Z5</code>（受信バッファのシフト用）と <code>Z7</code>（号機ブロック先頭）だけなので衝突しない。
+なお他モジュール（<code>Main</code> 等）でも <code>Z1</code>／<code>Z2</code> は使われるが、
+<b>インデックスレジスタはスキャン内でその都度セットして使う</b>運用であり、
+本ループも先頭で必ず <code>MOV DM110 Z1/Z2</code> と再初期化しているため影響しない。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s6">⑥ KV-STUDIO への取り込み手順</h2>
+<div class="callout warn">
+<b><code>Main</code> も <code>Main2</code> も FB を含むモジュール</b>（<code>Main</code> は FBCALL 4件）のため、
+そのまま <code>.mnm</code> を取り込むと<b>ローカル変数（FB内部変数）が失われる</b>。
+必ず「書き出し → 削除 → 取り込み → 移植」の順で行うこと。
+</div>
+
+<ol>
+<li><b>プロジェクトをフォルダごとバックアップ</b>する。</li>
+
+<li><b><code>Main2</code> を差し替える</b>（FB入り）
+  <ol style="list-style:lower-alpha">
+  <li><code>Main2</code> の<b>ローカル変数を書き出す</b>（変数一覧 → エクスポート）。</li>
+  <li>プロジェクトから <b><code>Main2</code> モジュールを削除</b>する。</li>
+  <li><b><code>KV_MQTT_ALL/Main2.mnm</code> を取り込む</b>（ニモニック読み込み）。</li>
+  <li>手順 a で書き出した<b>ローカル変数を移植</b>（インポート）する。</li>
+  </ol>
+</li>
+
+<li><b><code>Main</code> を差し替える</b>（FB入り・FBCALL 4件）
+  <ol style="list-style:lower-alpha">
+  <li><code>Main</code> の<b>ローカル変数を書き出す</b>。</li>
+  <li>プロジェクトから <b><code>Main</code> モジュールを削除</b>する。</li>
+  <li><b><code>KV_MQTT_ALL/Main.mnm</code> を取り込む</b>。</li>
+  <li><b>ローカル変数を移植</b>する。</li>
+  <li><b>スクリプトボックス（<code>BOX_ST</code>）の中身を確認</b>する。
+      復元されていれば何もしない。<b>空になっている／旧値のままの場合</b>は、
+      <code>KV_MQTT_ALL/スクリプトボックス貼付用.txt</code> の <b>★印18ブロック</b>を
+      各ボックスへ<b>貼り替える</b>（②-5 参照）。</li>
+  </ol>
+</li>
+
+<li><b>変換（F4）でエラー0件</b>を確認する。</li>
+
+<li><b>PLC を再起動する（または PROGRAM → RUN に切り替える）</b>。
+  <div class="callout warn" style="margin:8px 0">
+  機器マスタは <code>LD _FirstScanOn</code> で初期化されるため、<b>初回スキャンを走らせないと新採番が反映されない</b>。
+  この手順を飛ばすと、転送してもDeviceIdは旧値のまま publish され続ける。
+  </div>
+</li>
+
+<li>PLCへ<b>転送</b>し、⑦のテスト手順を実施する。</li>
+</ol>
+
+<div class="callout">
+<b>手作業で入れる場合（Main2 のみ）：</b> モジュールを差し替えないので、ローカル変数の移植は不要。
+③-5／④-6 のニモニックを該当位置にそのまま入力すればよい。
+その際 <code>MR31504</code>／<code>MR31604</code> は必ず <b>B接点（ノーマルクローズ）</b>、
+インデックス付きデバイスは <code>ZF150:Z1</code> のように「デバイス:インデックス」で入力する。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s7">⑦ テスト手順</h2>
+<div class="tblwrap">
+<table>
+  <tr><th>#</th><th>操作</th><th>期待結果</th></tr>
+  <tr class="hl"><td>1</td>
+      <td><b>マスタ確認</b>：PLC再起動後、モニタで機器マスタの値を確認する（レーン1）。</td>
+      <td><code>DM1000</code>＝<b>$7101</b>、<code>DM1023</code>＝<b>$8108</b>、
+          <code>DM1064</code>＝<b>$6101</b>、<code>DM1068</code>＝<b>$9101</b>、
+          <code>DM1070</code>＝<b>$3101</b>、<code>DM1190</code>＝<b>$6101</b></td></tr>
+  <tr class="hl"><td>2</td>
+      <td><b>電文確認</b>：MQTT を購読し、ステータス電文の <code>DeviceId</code> を確認する。</td>
+      <td>新採番で出ること（7101〜7108 / 8101〜8108 / 6101 / 9101 / <b>3101</b> …）。
+          旧値（7121 等）が出ないこと。</td></tr>
+  <tr class="hl"><td>3</td>
+      <td><b>受入可ON</b>の状態（<code>D0150</code> の bit4＝1）でシャトル作業指示を送信する。</td>
+      <td><b><code>ZF418</code>（D0418）＝ 電文の MultiFlag 値</b>、<b><code>ZF419</code>（D0419）＝ 1</b>。
+          指示データ <code>ZF401〜ZF413</code> も従来どおり入る。</td></tr>
+  <tr class="hl"><td>4</td>
+      <td><code>D0150</code> の bit4 を <b>0</b> にする（三菱PLC未接続ならモニタで <code>ZF150</code> に 0 を書く）。</td>
+      <td><b><code>ZF419</code> が 0 に落ちる</b>。<code>ZF401〜ZF418</code> は<b>残っている</b>（消えないこと）。</td></tr>
+  <tr class="hl"><td>5</td>
+      <td><b>受入可OFFのまま</b>、新しい作業指示を送信する。</td>
+      <td><code>ZF419</code> は <b>0 のまま</b>（受付拒否）。指示データは更新される。</td></tr>
+  <tr class="hl"><td>6</td>
+      <td><b>サーバ側</b>も同様に確認する（<code>D0190</code>／<code>D0191</code> の bit4 と <code>ZF729</code>／<code>ZF739</code>）。</td>
+      <td>3〜5と同じ挙動。ただし<b>マルチ化対応フラグはサーバに無い</b>ので <code>ZF728</code> は確認対象外。</td></tr>
+  <tr class="hl"><td>7</td>
+      <td><b>号機違い</b>で確認する（例：<code>ZF151</code> の bit4 を 0 → <code>ZF439</code>）。</td>
+      <td><b>その1台分だけ</b>が 0 に落ち、他号機の書込フラグは影響を受けないこと。</td></tr>
+</table>
+</div>
+<p class="sub">補足：手順4のあと受入可を <b>1 に戻しても <code>ZF419</code> は 0 のまま</b>で、
+<b>次の指示受信ではじめてON</b>になる（自動で立ち上がらない）。これは <code>@MOV</code>（微分実行）による意図した挙動。</p>
+
+<!-- ============================================================ -->
+<h2 id="s8">⑧ 注意事項</h2>
+<div class="callout warn">
+<ul style="margin:0">
+<li>本統合版のベースは <b><code>KV_MQTT_FIX7_FIN2</code>（2026-08-06 08:43 エクスポート）</b>。</li>
+<li><b>もし実機に既に FIX8 / FIX9 / FIX10 のいずれかを取り込み済みでも、そのまま <code>KV_MQTT_ALL</code> で上書き取り込みして差し支えない</b>
+（内容は同一の最終形。FIX10 とは全ファイルがバイト単位で同一）。</li>
+<li><b>ACS 側の DeviceId 対応表の更新が必須。</b> 特に<b>新種別 "3" の追加</b>（旧 <code>9x91</code> → 新 <code>3x01</code>）を忘れないこと。</li>
+<li><b>PLC 再起動（または PROGRAM→RUN）を必ず行う。</b> 機器マスタは初回スキャンでしか書かれない。</li>
+<li><code>Main</code>／<code>Main2</code> はどちらも <b>FB入りモジュール</b>。<code>.mnm</code> 差し替え時は
+<b>ローカル変数の書き出し／移植</b>を忘れない。</li>
+<li><code>MR31504</code>／<code>MR31604</code> は <b>B接点</b>。a接点で入力すると「受入可のときに0を書く」という真逆の動作になる。</li>
+<li>変更2の <code>@MOV #1 ZF19:Z7</code> の <b>@（微分）を落とさない</b>こと。通常 <code>MOV</code> にすると毎スキャン1を書き続け、
+変更3の0書きと競合してフラグが落ちなくなる。</li>
+<li>ループ先頭の <code>MOV DM110 Z1</code>／<code>MOV DM110 Z2</code> を<b>省略しない</b>こと。
+インデックスの再初期化がないと、他処理が残した値を引き継いで<b>まったく別のアドレスを0で潰す</b>危険がある。</li>
+<li>変更1は<b>値の置換のみ</b>。スクリプトボックスの<b>行を増やしたり減らしたりしない</b>。</li>
+</ul>
+</div>
+
+<div class="callout">
+<b>rung_check の警告について：</b>
+検証ツール <code>rung_check</code> で <code>MQTTSC_MANAGE_SAMPLE</code> と FB系モジュールに
+「終端でブロック残存」という警告が出るが、これらは<b>ベースと完全同一の未変更ファイル</b>であり、
+FB／サブルーチン構造に対するツール側の制約によるもの。<b>今回の変更とは無関係</b>で、実害はない。
+</div>
+
+</div>
+</body>
+</html>
